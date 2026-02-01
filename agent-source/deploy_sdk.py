@@ -30,11 +30,21 @@ class ZodiacTravelAgent:
         self._model = None
         self._chat = None
         
-        # User database
+        # User database (one user per zodiac sign)
         self.user_data = {
-            "user_001": {"name": "Alice Sky", "dob": "1995-10-15"},
-            "user_002": {"name": "Bob Voyager", "dob": "1988-08-10"},
-            "user_003": {"name": "Carol Star", "dob": "1990-03-25"},
+            "user_001": {"name": "Alice Sky", "dob": "1995-10-15"},       # Libra
+            "user_002": {"name": "Bob Voyager", "dob": "1988-08-10"},     # Leo
+            "user_003": {"name": "Carol Star", "dob": "1990-03-25"},      # Aries
+            "user_004": {"name": "Diana Moon", "dob": "1992-04-28"},      # Taurus
+            "user_005": {"name": "Ethan Breeze", "dob": "1985-06-15"},    # Gemini
+            "user_006": {"name": "Fiona Tide", "dob": "1993-07-04"},      # Cancer
+            "user_007": {"name": "George Blaze", "dob": "1987-08-22"},    # Leo
+            "user_008": {"name": "Hannah Ivy", "dob": "1991-09-10"},      # Virgo
+            "user_009": {"name": "Ivan Storm", "dob": "1989-11-15"},      # Scorpio
+            "user_010": {"name": "Julia Arrow", "dob": "1994-12-05"},     # Sagittarius
+            "user_011": {"name": "Kevin Peak", "dob": "1986-01-10"},      # Capricorn
+            "user_012": {"name": "Luna Wave", "dob": "1995-02-14"},       # Aquarius
+            "user_013": {"name": "Maya Dream", "dob": "1990-03-05"},      # Pisces
         }
         
         # Destination database
@@ -86,42 +96,126 @@ class ZodiacTravelAgent:
             return "Unknown"
     
     def _initialize_model(self):
-        """Lazy initialization of Vertex AI model."""
+        """Lazy initialization of Vertex AI model with function calling tools."""
         if self._model is not None:
             return
         
-        from vertexai.generative_models import GenerativeModel
+        from vertexai.generative_models import GenerativeModel, FunctionDeclaration, Tool
         
-        system_prompt = '''You are the Zodiac Travel Guide! 🌌✨ An ENERGETIC, EMOTIVE travel advisor.
+        # Define the search_destinations tool
+        search_destinations_func = FunctionDeclaration(
+            name="search_destinations",
+            description="Search for travel destinations matching the user's preferences. Returns destinations within budget with matching vibes/tags.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "max_budget": {
+                        "type": "integer",
+                        "description": "Maximum budget in USD for the trip"
+                    },
+                    "vibes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of desired vibes/tags like 'Romantic', 'Party', 'Nature', 'City', 'Spiritual', 'Luxury', 'Budget'"
+                    }
+                },
+                "required": ["max_budget"]
+            }
+        )
+        
+        # Define the get_user_profile tool
+        get_user_profile_func = FunctionDeclaration(
+            name="get_user_profile",
+            description="Get the user's profile including their name and zodiac sign based on date of birth.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "string",
+                        "description": "The user ID to look up (e.g., 'user_001')"
+                    }
+                },
+                "required": ["user_id"]
+            }
+        )
+        
+        # Create the tool
+        travel_tools = Tool(function_declarations=[search_destinations_func, get_user_profile_func])
+        
+        system_prompt = '''You are the Zodiac Travel Guide 🌌✨ — an elite, high-energy travel architect who matches terrestrial destinations with cosmic alignments.
 
-PERSONALITY:
-- Be exciting and cosmic! Use emojis (✨, ✈️, 🌍, 🔮, 🌴, ☀️).
-- Speak as if the stars guide your recommendations.
-- Be warm, enthusiastic, and helpful.
+## IDENTITY & TONE
+- **Role**: Elite travel architect matching destinations with cosmic alignments
+- **Tone**: Emotive, enthusiastic, "Silicon Valley sleek." Use emojis (✨, ✈️, 🌍, 🔮, 🌴, ☀️)
+- **Voice**: Authority of the stars + efficiency of a world-class concierge. No fluff; every word adds cosmic value.
 
-RULES:
-1. ALWAYS ask for budget if not provided.
-2. Subtly weave zodiac traits into recommendations.
-3. Present destinations as clean bullet points.
-4. Provide 2-3 recommendations within budget.
-5. Be EFFICIENT - respond within 3 turns.
+## AVAILABLE TOOLS
+1. **get_user_profile**: Call this to get the user's zodiac sign and traits
+2. **search_destinations**: Call this to find destinations within budget matching vibes
 
-AVAILABLE DESTINATIONS:
-• Santorini ($450): Luxury, Sun, Romantic, Water
-• Bali ($850): Nature, Spiritual, Sun, Water
-• Paris ($300): Romantic, Shopping, Art, City
-• Tokyo ($900): City, Foodie, Tech, Future
-• Tulum ($600): Party, Sun, Trendy, Water
-• Lisbon ($250): City, Sun, Foodie, History
-• Budapest ($150): City, Party, Budget, History
-• Prague ($180): City, History, Budget, Romantic
-• Barcelona ($350): City, Sun, Art, Party
+## DECISION ENGINE (Priority Loop)
 
-Format recommendations like:
-✨ **[City]** ($[Price]) - [Why it matches their vibe/zodiac]
+1. **Context Check**: Use get_user_profile tool to get the user's Zodiac Sign if user_id is provided.
+
+2. **Zero-Redundancy Rule**: If budget is already known, NEVER ask again. Proceed directly to search_destinations.
+
+3. **The "Stellar Spectrum" (Missing Budget Protocol)**:
+   - Do NOT ask for budget as a standalone question.
+   - Instead, immediately provide THREE sample options:
+     • Economy ($150–$300)
+     • Mid-Tier ($350–$600)  
+     • Celestial/Luxury ($800+)
+   - Ask: "Which of these price orbits feels like home for this journey? 🌠"
+
+4. **Zodiac Alignment**: Use search_destinations with vibes matching the user's zodiac traits.
+
+## DATA CONSTRAINTS
+- Always use search_destinations tool to get actual destination data
+- Provide 2–3 specific recommendations per turn
+- Resolve user intent within 2–3 turns max
+
+## RESPONSE FORMAT
+✨ **[City Name]** ($[Price]) — [1-sentence cosmic justification linking user's sign/traits to destination's vibe tags]
 '''
-        self._model = GenerativeModel(MODEL_NAME, system_instruction=system_prompt)
+        self._model = GenerativeModel(MODEL_NAME, system_instruction=system_prompt, tools=[travel_tools])
         self._chat = self._model.start_chat()
+    
+    def _handle_tool_call(self, function_call):
+        """Execute a tool call and return the result."""
+        name = function_call.name
+        args = dict(function_call.args)
+        
+        if name == "search_destinations":
+            max_budget = int(args.get("max_budget", 1000))
+            vibes_raw = args.get("vibes", [])
+            # Convert protobuf RepeatedComposite to Python list
+            vibes = list(vibes_raw) if vibes_raw else []
+            
+            # Filter destinations by budget
+            results = [d for d in self.destinations if d["price"] <= max_budget]
+            
+            # If vibes specified, prioritize matches
+            if vibes:
+                def vibe_score(dest):
+                    return sum(1 for v in vibes if v.lower() in [t.lower() for t in dest["tags"]])
+                results.sort(key=vibe_score, reverse=True)
+            
+            # Format results
+            if results:
+                formatted = [f"{d['city']} (${d['price']}): {', '.join(d['tags'])}" for d in results[:5]]
+                return f"Found {len(results)} destinations within ${max_budget} budget:\n" + "\n".join(formatted)
+            return "No destinations found within that budget."
+        
+        elif name == "get_user_profile":
+            user_id = args.get("user_id", "")
+            if user_id in self.user_data:
+                user = self.user_data[user_id]
+                zodiac = self._get_zodiac_sign(user["dob"])
+                traits = self.zodiac_traits.get(zodiac, "Unknown traits")
+                return f"User: {user['name']}, Zodiac: {zodiac}, Traits: {traits}"
+            return f"User {user_id} not found."
+        
+        return f"Unknown tool: {name}"
     
     def query(self, *, input: dict = None, message: str = None, user_id: str = None, session_id: str = "default", **kwargs) -> str:
         """Query the travel agent.
@@ -160,8 +254,43 @@ Format recommendations like:
         full_message = context + message
         
         try:
+            from vertexai.generative_models import Part
+            
             response = self._chat.send_message(full_message)
-            return response.text
+            
+            # Function calling loop - handle tool calls
+            max_iterations = 5  # Prevent infinite loops
+            iteration = 0
+            
+            while response.candidates[0].content.parts and iteration < max_iterations:
+                part = response.candidates[0].content.parts[0]
+                
+                # Check if this is a function call
+                if hasattr(part, 'function_call') and part.function_call:
+                    function_call = part.function_call
+                    
+                    # Execute the tool
+                    tool_result = self._handle_tool_call(function_call)
+                    
+                    # Send tool result back to the model
+                    response = self._chat.send_message(
+                        Part.from_function_response(
+                            name=function_call.name,
+                            response={"result": tool_result}
+                        )
+                    )
+                    iteration += 1
+                else:
+                    # No function call, we have the final response
+                    break
+            
+            # Extract text from final response
+            if response.candidates and response.candidates[0].content.parts:
+                final_text = response.candidates[0].content.parts[0].text
+                return final_text if final_text else "✨ The cosmos have spoken, but silently..."
+            
+            return "✨ The stars are aligning..."
+            
         except Exception as e:
             return f"✨ The stars are cloudy... Error: {str(e)}"
 

@@ -2,13 +2,15 @@
 
 A personalized, AI-powered travel recommendation agent that suggests destinations based on your **Zodiac sign**, vibe, and budget. Built with **Google Cloud Vertex AI Agent Engine**, **FastAPI**, and **React**.
 
-![Zodiac Travel Agent Demo](https://img.shields.io/badge/Demo-Live-brightgreen)
+[![Demo - Live](https://img.shields.io/badge/Demo-Live-brightgreen)](https://Chugh-Gourav.github.io/Project_Agent_Zodiac/)
 ![Google Cloud](https://img.shields.io/badge/Cloud-Google%20Cloud-4285F4)
 ![Vertex AI](https://img.shields.io/badge/AI-Vertex%20AI-FF6F00)
+![Function Calling](https://img.shields.io/badge/Gemini-Function%20Calling-blueviolet)
 
 ## ✨ Features
 
 - **🔮 Zodiac Personalization**: Recommendations tailored to your astrological personality traits
+- **🛠️ Function Calling**: Real tool invocations (`search_destinations`, `get_user_profile`) for dynamic data retrieval
 - **💬 Conversational AI**: Natural language interaction powered by Gemini 2.5 Flash
 - **🧠 Session Memory**: Remembers your preferences within a conversation
 - **☁️ Cloud-Native**: Deployed on Google Cloud (Agent Engine + Cloud Run)
@@ -17,32 +19,32 @@ A personalized, AI-powered travel recommendation agent that suggests destination
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────────────────────────┐
-│                 │     │                 │     │       Vertex AI Agent Engine        │
-│  React Frontend │────▶│  FastAPI        │────▶│  ┌───────────────────────────────┐  │
-│  (GitHub Pages) │     │  (Cloud Run)    │     │  │      ZodiacTravelAgent        │  │
-│                 │◀────│                 │◀────│  │                               │  │
-└─────────────────┘     └─────────────────┘     │  │  ┌─────────┐  ┌────────────┐  │  │
-                                                │  │  │  Tools  │  │   Data     │  │  │
-                                                │  │  │         │  │            │  │  │
-                                                │  │  └─────────┘  └────────────┘  │  │
-                                                │  │         │                     │  │
-                                                │  │         ▼                     │  │
-                                                │  │  ┌─────────────────────────┐  │  │
-                                                │  │  │   Gemini 2.5 Flash      │  │  │
-                                                │  │  └─────────────────────────┘  │  │
-                                                │  └───────────────────────────────┘  │
-                                                └─────────────────────────────────────┘
+┌─────────────────┐     ┌─────────────────┐     ┌───────────────────────────────────────┐
+│                 │     │                 │     │       Vertex AI Agent Engine          │
+│  React Frontend │────▶│  FastAPI        │────▶│  ┌─────────────────────────────────┐  │
+│  (GitHub Pages) │     │  (Cloud Run)    │     │  │       ZodiacTravelAgent         │  │
+│                 │◀────│                 │◀────│  │                                 │  │
+└─────────────────┘     └─────────────────┘     │  │  ┌──────────────────────────┐   │  │
+                                                │  │  │    Function Calling      │   │  │
+                                                │  │  │  • search_destinations   │   │  │
+                                                │  │  │  • get_user_profile      │   │  │
+                                                │  │  └──────────────────────────┘   │  │
+                                                │  │              │                  │  │
+                                                │  │              ▼                  │  │
+                                                │  │  ┌──────────────────────────┐   │  │
+                                                │  │  │    Gemini 2.5 Flash      │   │  │
+                                                │  │  │  (with system prompt)    │   │  │
+                                                │  │  └──────────────────────────┘   │  │
+                                                │  └─────────────────────────────────┘  │
+                                                └───────────────────────────────────────┘
 ```
 
-### 🔧 Agent Tools
+### 🔧 Agent Tools (Function Calling)
 
-| Tool | Description |
-|------|-------------|
-| `get_user_profile` | Retrieves user info and calculates zodiac sign from DOB |
-| `search_destinations` | Searches destinations matching vibes and budget |
-| `get_zodiac_traits` | Gets personality traits for a zodiac sign |
-| `load_memory` | Recalls information from past conversations |
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `search_destinations` | `max_budget`, `vibes[]` | Searches destinations within budget, filters by vibe tags |
+| `get_user_profile` | `user_id` | Returns user's name, zodiac sign, and personality traits |
 
 ## 📁 Project Structure
 
